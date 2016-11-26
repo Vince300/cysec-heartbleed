@@ -5,25 +5,33 @@ WORKDIR /root
 # Install nginx and development tools, remove system openssl
 RUN apk update && \
     apk del openssl && \
-    apk add wget perl build-base linux-headers nginx
-# Download a vulnerable OpenSSL source
-RUN wget -O- --no-check-certificate 'https://www.openssl.org/source/openssl-1.0.1f.tar.gz' | tar xz
-# Build OpenSSL from source and install it
-RUN cd openssl-1.0.1f && \
-    wget -O- --no-check-certificate 'https://raw.githubusercontent.com/embeddedartists/buildroot/master/package/openssl/openssl-004-musl-termios.patch' | patch -p1 && \
-    ./config no-hw shared --prefix=/usr --openssldir=/usr/local/openssl && \
-    make depend && \
-    make ; \
-    make install && \
-    cd .. && \
-    rm -rf openssl-1.0.1f /usr/local/openssl/man
+    apk add wget perl build-base linux-headers
+# Download a vulnerable OpenSSL for nginx (patch file is for building on musl libc)
+RUN wget -O- --no-check-certificate 'https://www.openssl.org/source/openssl-1.0.1f.tar.gz' | tar xz && \
+    cd openssl-1.0.1f && \
+    wget -O- --no-check-certificate 'https://raw.githubusercontent.com/embeddedartists/buildroot/master/package/openssl/openssl-004-musl-termios.patch' | patch -p1
+# Install nginx from source
+RUN wget -O- --no-check-certificate 'https://nginx.org/download/nginx-1.10.2.tar.gz' | tar xz && \
+    cd nginx-1.10.2 && \
+    ./configure --prefix=/usr/local/nginx \
+                --sbin-path=/usr/sbin/nginx \
+                --conf-path=/etc/nginx/nginx.conf \
+                --pid-path=/run/nginx/nginx.pid \
+                --error-log-path=/run/nginx/error.log \
+                --http-log-path=/run/nginx/access.log \
+                --without-http_gzip_module \
+                --without-http_rewrite_module \
+                --with-http_ssl_module \
+                --with-openssl=/root/openssl-1.0.1f && \
+    make && \
+    make install
 # Do some cleanup
 RUN apk del wget perl build-base linux-headers && \
-    rm -rf /var/cache/apk/*
-# Generate a self-signed certificate for nginx
-RUN openssl req -x509 -newkey rsa:2048 -keyout /etc/nginx/cert.key -nodes -days 365 -subj '/C=FR/ST=Rhône Alpes/L=Grenoble/CN=localhost/emailAddress=test@example.com' -out /etc/nginx/cert.pem
-# Configure nginx
+    rm -rf nginx-1.10.2 openssl-1.0.1f /var/cache/apk/* /usr/local/openssl/man
+# Configure nginx and cert/key
 ADD nginx.conf /etc/nginx/nginx.conf
+ADD cert.key /etc/nginx/cert.key
+ADD cert.pem /etc/nginx/cert.pem
 # Create the directory for nginx.pid
 RUN mkdir -p /run/nginx
 # By default on this container, start nginx
