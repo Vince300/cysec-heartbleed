@@ -2,16 +2,15 @@
 FROM alpine
 # Do everything in the home directory
 WORKDIR /root
-# Install nginx and development tools, remove system openssl
+# Install PHP, nginx and development tools, remove system openssl
 RUN apk update && \
-    apk del openssl && \
-    apk add wget perl build-base linux-headers
+    apk add wget perl build-base linux-headers pcre-dev php5-fpm
 # Download a vulnerable OpenSSL for nginx (patch file is for building on musl libc)
-RUN wget -O- --no-check-certificate 'https://www.openssl.org/source/openssl-1.0.1f.tar.gz' | tar xz && \
+RUN wget -q -O- --no-check-certificate 'https://www.openssl.org/source/openssl-1.0.1f.tar.gz' | tar xz && \
     cd openssl-1.0.1f && \
-    wget -O- --no-check-certificate 'https://raw.githubusercontent.com/embeddedartists/buildroot/master/package/openssl/openssl-004-musl-termios.patch' | patch -p1
+    wget -q -O- --no-check-certificate 'https://raw.githubusercontent.com/embeddedartists/buildroot/master/package/openssl/openssl-004-musl-termios.patch' | patch -p1
 # Install nginx from source
-RUN wget -O- --no-check-certificate 'https://nginx.org/download/nginx-1.10.2.tar.gz' | tar xz && \
+RUN wget -q -O- --no-check-certificate 'https://nginx.org/download/nginx-1.10.2.tar.gz' | tar xz && \
     cd nginx-1.10.2 && \
     ./configure --prefix=/usr/local/nginx \
                 --sbin-path=/usr/sbin/nginx \
@@ -20,21 +19,25 @@ RUN wget -O- --no-check-certificate 'https://nginx.org/download/nginx-1.10.2.tar
                 --error-log-path=/run/nginx/error.log \
                 --http-log-path=/run/nginx/access.log \
                 --without-http_gzip_module \
-                --without-http_rewrite_module \
                 --with-http_ssl_module \
                 --with-openssl=/root/openssl-1.0.1f && \
     make && \
     make install
 # Do some cleanup
-RUN apk del wget perl build-base linux-headers && \
+RUN apk del wget perl build-base linux-headers pcre-dev && \
     rm -rf nginx-1.10.2 openssl-1.0.1f /var/cache/apk/* /usr/local/openssl/man
-# Configure nginx and cert/key
-ADD nginx.conf /etc/nginx/nginx.conf
+# Configure cert/key
 ADD cert.key /etc/nginx/cert.key
 ADD cert.pem /etc/nginx/cert.pem
+# Use a socket for php5-fpm
+RUN sed -i "s/^listen = .*/listen = \\/var\\/run\\/php5-fpm.sock\nlisten.owner = nobody\nlisten.group = nobody/" /etc/php5/php-fpm.conf
+# Configure nginx
+ADD nginx.conf /etc/nginx/nginx.conf
 # Create the directory for nginx.pid
 RUN mkdir -p /run/nginx
+# Add the user code
+ADD web /srv
 # By default on this container, start nginx
-CMD /usr/sbin/nginx
+CMD /usr/bin/php-fpm && /usr/sbin/nginx
 # Expose HTTPS port for the internal nginx server
 EXPOSE 443
