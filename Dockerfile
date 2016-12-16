@@ -29,6 +29,7 @@ RUN apk del wget perl build-base linux-headers pcre-dev && \
 # Configure cert/key
 ADD cert.key /etc/nginx/cert.key
 ADD cert.pem /etc/nginx/cert.pem
+ADD htpasswd /etc/nginx/.htpasswd
 # Use a socket for php5-fpm
 RUN sed -i "s/^listen = .*/listen = \\/var\\/run\\/php5-fpm.sock\nlisten.owner = nobody\nlisten.group = nobody/" /etc/php5/php-fpm.conf
 # Configure nginx
@@ -38,6 +39,6 @@ RUN mkdir -p /run/nginx
 # Add the user code
 ADD web /srv
 # By default on this container, start nginx
-CMD /usr/bin/php-fpm && /usr/sbin/nginx
+CMD /usr/bin/php-fpm && /usr/sbin/nginx 
 # Expose HTTPS port for the internal nginx server
 EXPOSE 443
