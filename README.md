@@ -30,6 +30,12 @@ sudo docker run --name cysec-heartbleed -it cysec-heartbleed
 # Find out the IP address of the container
 docker network inspect bridge
 
+# Go to the website with your browser
+[browser] https://[IP_Container] (e.g. firefox https://172.17.0.2)
+
+# Put the login
+guest:guest123
+
 # Installations des paquets nécessaires pour metasploit (exemple sous Debian)
 sudo apt-get install git-core postgresql curl ruby-dev nmap gem
 gem install wirble sqlite3 bundler
